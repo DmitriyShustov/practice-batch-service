@@ -1,6 +1,7 @@
 package ru.axiomatika.batch_request.web.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,6 +20,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(e.getHttpStatusCode())
                 .body(exceptionMapper.toDto(e));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ExceptionResponseDto> handleInternalException(Exception e) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(exceptionMapper.internalException(e.getMessage()));
     }
 
 }
