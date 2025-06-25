@@ -1,10 +1,11 @@
-package ru.axiomatika.batch_request.web.mapper.error;
+package ru.axiomatika.batch_service.web.mapper.error;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.axiomatika.batch_request.core.exception.BaseException;
-import ru.axiomatika.batch_request.core.exception.BaseExceptionCode;
-import ru.axiomatika.batch_request.web.dto.error.ExceptionResponseDto;
+import org.springframework.http.HttpStatus;
+import ru.axiomatika.batch_service.core.exception.BaseException;
+import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
+import ru.axiomatika.batch_service.web.dto.error.ExceptionResponseDto;
 
 @Mapper(componentModel = "spring")
 public interface ExceptionMapper {

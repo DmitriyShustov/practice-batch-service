@@ -1,4 +1,4 @@
-package ru.axiomatika.batch_request.web.dto.error;
+package ru.axiomatika.batch_service.web.dto.error;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

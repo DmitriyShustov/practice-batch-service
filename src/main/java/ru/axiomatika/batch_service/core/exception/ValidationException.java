@@ -1,4 +1,4 @@
-package ru.axiomatika.batch_request.core.exception;
+package ru.axiomatika.batch_service.core.exception;
 
 import org.springframework.http.HttpStatus;
 

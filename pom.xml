@@ -10,9 +10,9 @@
 	</parent>
 
 	<groupId>ru.axiomatika</groupId>
-	<artifactId>batch-request</artifactId>
+	<artifactId>batch-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>batch-request</name>
+	<name>batch-service</name>
 	<description>Service for batch request processing </description>
 	<properties>
 		<java.version>17</java.version>

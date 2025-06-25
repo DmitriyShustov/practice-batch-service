@@ -1,4 +1,4 @@
-package ru.axiomatika.batch_request.web.controller;
+package ru.axiomatika.batch_service.web.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
