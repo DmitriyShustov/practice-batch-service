@@ -11,6 +11,8 @@ public enum BaseExceptionCode {
     INVALID_ARCHIVE_EXTRACTION(401),
     INVALID_ARCHIVE_CONTENT_FORMAT(402),
 
+    INVALID_REQUEST_KEY_PARAM(403),
+
     INTERNAL_EXCEPTION(500);
 
     private final int code;

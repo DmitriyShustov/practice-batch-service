@@ -41,4 +41,12 @@ public interface ExceptionMapper {
                 .message(message)
                 .build();
     }
+
+    default ExceptionResponseDto badRequestException(BaseExceptionCode code, String message) {
+        return  ExceptionResponseDto.builder()
+                .statusCode(code.getCode())
+                .httpStatusCode(HttpStatus.BAD_REQUEST.value())
+                .message(message)
+                .build();
+    }
 }
