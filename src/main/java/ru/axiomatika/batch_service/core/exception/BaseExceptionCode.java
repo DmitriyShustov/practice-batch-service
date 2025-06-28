@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum BaseExceptionCode {
 
-    INVALID_ARCHIVE_INTEGRITY(400),
+    INVALID_ARCHIVE_EMPTY(400),
     INVALID_ARCHIVE_EXTRACTION(401),
     INVALID_ARCHIVE_CONTENT_FORMAT(402),
 
