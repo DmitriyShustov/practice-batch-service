@@ -3,6 +3,7 @@ package ru.axiomatika.batch_service.core.validator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
+import ru.axiomatika.batch_service.core.exception.GroupValidationException;
 import ru.axiomatika.batch_service.core.exception.ValidationException;
 
 import java.io.IOException;
@@ -14,23 +15,17 @@ import java.util.zip.ZipInputStream;
 @Component
 public class BatchValidator {
 
-    private List<ValidationException> errors;
-
-    public List<ValidationException> validateArchive(MultipartFile file) {
-        this.errors = new ArrayList<>();
-
+    public void validateArchive(MultipartFile file) {
         validateNotEmptyArchive(file);
         validateArchiveContent(file);
-
-        return this.errors;
     }
 
     private void validateNotEmptyArchive(MultipartFile file) {
         if (file.isEmpty()) {
-            this.errors.add(new ValidationException(
+            throw new ValidationException(
                     BaseExceptionCode.INVALID_ARCHIVE_EMPTY,
                     "Archive file is empty"
-            ));
+            );
         }
     }
 
@@ -38,35 +33,41 @@ public class BatchValidator {
         try (ZipInputStream zipInputStream = new ZipInputStream(file.getInputStream())) {
             validateZipEntries(zipInputStream);
         } catch (IOException e) {
-            this.errors.add(new ValidationException(
+            throw new ValidationException(
                     BaseExceptionCode.INVALID_ARCHIVE_EXTRACTION,
                     "Failed to read archive: " + e.getMessage()
-            ));
+            );
         }
     }
 
     private void validateZipEntries(ZipInputStream zipStream) throws IOException {
+        List<ValidationException> errors = new ArrayList<>();
+
         boolean hasValidEntries = false;
         ZipEntry entry;
 
         while ((entry = zipStream.getNextEntry()) != null) {
             if (!entry.isDirectory()) {
                 hasValidEntries = true;
-                validateEntryIsXml(entry);
+                validateEntryIsXml(entry, errors);
             }
         }
 
         if (!hasValidEntries) {
-            this.errors.add(new ValidationException(
+            throw new ValidationException(
                     BaseExceptionCode.INVALID_ARCHIVE_CONTENT_FORMAT,
                     "Archive contains no valid files"
-            ));
+            );
+        }
+
+        if (!errors.isEmpty()) {
+            throw new GroupValidationException(errors);
         }
     }
 
-    private void validateEntryIsXml(ZipEntry entry) {
+    private void validateEntryIsXml(ZipEntry entry, List<ValidationException> errors) {
         if (!entry.getName().endsWith(".xml")) {
-            this.errors.add(new ValidationException(
+            errors.add(new ValidationException(
                     BaseExceptionCode.INVALID_ARCHIVE_CONTENT_FORMAT,
                     "Archive contains non-XML files: " + entry.getName()
             ));
