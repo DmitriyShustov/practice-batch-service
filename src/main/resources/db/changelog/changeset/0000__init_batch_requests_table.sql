@@ -6,7 +6,7 @@ CREATE TYPE batch_status AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS batch_requests (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     request_time TIMESTAMP NOT NULL,
     name VARCHAR(255),
     total_requests INT NOT NULL,
