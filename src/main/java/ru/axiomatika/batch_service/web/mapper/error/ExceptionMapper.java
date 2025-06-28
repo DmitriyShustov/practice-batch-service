@@ -12,11 +12,13 @@ public interface ExceptionMapper {
 
     @Mapping(target = "statusCode", source = "baseExceptionCode.code")
     @Mapping(target = "message", source = "message")
+    @Mapping(target = "httpStatusCode", expression = "java(e.getHttpStatusCode().value())")
     ExceptionResponseDto toDto(BaseException e);
 
     default ExceptionResponseDto internalException(String message) {
         return  ExceptionResponseDto.builder()
                 .statusCode(BaseExceptionCode.INTERNAL_EXCEPTION.getCode())
+                .httpStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message(message)
                 .build();
     }

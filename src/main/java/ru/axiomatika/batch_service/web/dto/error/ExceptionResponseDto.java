@@ -13,6 +13,8 @@ public class ExceptionResponseDto {
 
     private int statusCode;
 
+    private int httpStatusCode;
+
     private String message;
 
 }
