@@ -26,8 +26,8 @@ public class Batch {
     @Column(name = "total_requests", nullable = false)
     private int totalRequests;
 
-    @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
     private BatchStatus status;
 
 }
