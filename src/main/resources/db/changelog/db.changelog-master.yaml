@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changeset/0000__init_batch_requests_table.sql
   - include:
       file: db/changelog/changeset/0001__init_batch_request_items_table.sql
+  - include:
+      file: db/changelog/changeset/0002__init_batch_queue_items_table.sql
