@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum BatchItemStatus {
 
+    PENDING(0),
     SUCCESS(1),
     VALIDATION_ERROR(2),
     PROCESSING_ERROR(3),
