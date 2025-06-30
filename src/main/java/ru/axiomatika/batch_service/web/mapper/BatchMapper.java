@@ -3,6 +3,7 @@ package ru.axiomatika.batch_service.web.mapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
@@ -21,16 +22,30 @@ import java.util.zip.ZipInputStream;
 public class BatchMapper {
 
     public Batch toBatch(MultipartFile zipFile) {
-        Batch batch = new Batch();
-        batch.setRequestTime(LocalDateTime.now());
-        batch.setName(zipFile.getOriginalFilename());
-        batch.setStatus(BatchStatus.RECEIVED);
+        return Batch.builder()
+                .requestTime(LocalDateTime.now())
+                .name(zipFile.getOriginalFilename())
+                .status(BatchStatus.RECEIVED)
+                .hash(calculateHash(zipFile))
+                .totalRequests(getTotalRequests(zipFile))
+                .build();
+    }
 
+    private String calculateHash(MultipartFile zipFile) {
+        String fileHash;
+        try (InputStream hashStream = zipFile.getInputStream()) {
+            fileHash = DigestUtils.md5DigestAsHex(hashStream);
+        } catch (IOException e) {
+            throw new ValidationException(BaseExceptionCode.INVALID_ARCHIVE_CONTENT_FORMAT, e.getMessage());
+        }
+
+        return fileHash;
+    }
+
+    private int getTotalRequests(MultipartFile zipFile) {
         int totalRequests = 0;
-
-        try (InputStream inputStream = zipFile.getInputStream();
-             ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
-
+        try (InputStream countStream = zipFile.getInputStream();
+             ZipInputStream zipInputStream = new ZipInputStream(countStream)) {
             ZipEntry entry;
             while ((entry = zipInputStream.getNextEntry()) != null) {
                 if (!entry.isDirectory()) {
@@ -40,8 +55,6 @@ public class BatchMapper {
         } catch (IOException e) {
             throw new ValidationException(BaseExceptionCode.INVALID_ARCHIVE_CONTENT_FORMAT, e.getMessage());
         }
-
-        batch.setTotalRequests(totalRequests);
-        return batch;
+        return totalRequests;
     }
 }
