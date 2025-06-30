@@ -27,6 +27,7 @@
 		<jaxb-api.version>2.3.1</jaxb-api.version>
 		<jaxb-runtime.version>2.3.3</jaxb-runtime.version>
 		<spring-oxm.version>6.1.6</spring-oxm.version>
+		<commons-codec.version>1.15</commons-codec.version>
 
 		<maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
 		<maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
@@ -108,6 +109,12 @@
 			<artifactId>jaxb-runtime</artifactId>
 			<version>${jaxb-runtime.version}</version>
 			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>${commons-codec.version}</version>
 		</dependency>
 
 		<dependency>
