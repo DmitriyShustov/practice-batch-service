@@ -23,7 +23,7 @@ public class BatchItem {
     private String name;
 
     @Column(name = "xml_content")
-    private String xml_content;
+    private String xmlContent;
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.ORDINAL)
