@@ -1,5 +1,6 @@
 package ru.axiomatika.batch_service.core.repository;
 
+import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -10,15 +11,12 @@ import ru.axiomatika.batch_service.core.exception.BaseException;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 
 @Repository
+@RequiredArgsConstructor
 public class BatchRepository {
 
     private final SessionFactory sessionFactory;
 
-    public BatchRepository(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
-    }
-
-    public Batch save(Batch batch) {
+    public void save(Batch batch) {
         Session session = sessionFactory.openSession();
         Transaction transaction = null;
         try {
@@ -27,7 +25,6 @@ public class BatchRepository {
             session.persist(batch);
             transaction.commit();
 
-            return batch;
         } catch (Exception e) {
             if (transaction != null) {
                 transaction.rollback();
