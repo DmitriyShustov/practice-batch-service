@@ -17,6 +17,12 @@ public class Batch {
     @Column(name = "id", nullable = false)
     private Long id;
 
+    @Column(name = "hash", nullable = false, length = 64)
+    private String hash;
+
+    @Column(name = "next_attempt")
+    private LocalDateTime nextAttempt;
+
     @Column(name = "request_time", nullable = false)
     private LocalDateTime requestTime;
 
