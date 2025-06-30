@@ -29,4 +29,8 @@ public class BatchItem {
     @Enumerated(EnumType.ORDINAL)
     private BatchItemStatus status;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_request_id")
+    private Batch batch;
+
 }
