@@ -13,7 +13,11 @@ public enum BaseExceptionCode {
 
     INVALID_REQUEST_KEY_PARAM(403),
 
-    INTERNAL_EXCEPTION(500);
+    GROUP_VALIDATION_EXCEPTION(404),
+
+    INTERNAL_EXCEPTION(500),
+
+    DATABASE_EXCEPTION(501);
 
     private final int code;
 
