@@ -10,6 +10,8 @@ import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.exception.BaseException;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class BatchRepository {
@@ -37,6 +39,37 @@ public class BatchRepository {
             );
         } finally {
             session.close();
+        }
+    }
+
+    public Optional<Batch> findByHash(String hash) {
+        checkValidHas(hash);
+
+        Session session = sessionFactory.openSession();
+        try {
+            return session.createQuery(
+                            "SELECT b FROM Batch b WHERE b.hash = :hash", Batch.class)
+                    .setParameter("hash", hash)
+                    .setMaxResults(1)
+                    .setCacheable(true)
+                    .uniqueResultOptional();
+        } catch (Exception e) {
+            throw new BaseException(
+                    "Failed to find batch by hash",
+                    BaseExceptionCode.DATABASE_EXCEPTION,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        } finally {
+            session.close();
+        }
+    }
+
+    private void checkValidHas(String hash) {
+        if (hash == null || hash.isEmpty()) {
+            throw new BaseException(
+                    "Invalid hash",
+                    BaseExceptionCode.INVALID_MD5_HASH,
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 

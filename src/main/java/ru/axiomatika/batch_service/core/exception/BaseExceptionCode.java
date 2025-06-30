@@ -17,7 +17,8 @@ public enum BaseExceptionCode {
 
     INTERNAL_EXCEPTION(500),
 
-    DATABASE_EXCEPTION(501);
+    DATABASE_EXCEPTION(501),
+    INVALID_MD5_HASH(502);
 
     private final int code;
 
