@@ -42,6 +42,35 @@ public class BatchRepository {
         }
     }
 
+    public void updateStatus(Batch batch) {
+        Session session = sessionFactory.openSession();
+        Transaction transaction = null;
+        try {
+            transaction = session.beginTransaction();
+
+            session.createQuery(
+                            "UPDATE Batch b SET " +
+                                    "b.status = :status " +
+                                    "WHERE b.id = :id")
+                    .setParameter("status", batch.getStatus())
+                    .setParameter("id", batch.getId())
+                    .executeUpdate();
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw new BaseException(
+                    "Failed to update batch status: " + e.getMessage(),
+                    BaseExceptionCode.DATABASE_EXCEPTION,
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        } finally {
+            session.close();
+        }
+    }
+
     public Optional<Batch> findByHash(String hash) {
         checkValidHas(hash);
 
