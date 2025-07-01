@@ -1,7 +1,6 @@
 package ru.axiomatika.batch_service.core.exception;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 
 public class DatabaseException extends BaseException {
 
