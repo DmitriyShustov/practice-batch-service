@@ -20,6 +20,9 @@ public class Batch {
     @Column(name = "hash", nullable = false, length = 64)
     private String hash;
 
+    @Column(name = "previous_attempt")
+    private LocalDateTime previousAttempt;
+
     @Column(name = "next_attempt")
     private LocalDateTime nextAttempt;
 
