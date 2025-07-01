@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -33,12 +34,16 @@ public class BatchService {
     private final BatchItemMapper batchItemMapper;
     private final BatchProcessingService processingService;
 
-    public void processArchive(MultipartFile file) {
+    public Batch processArchive(MultipartFile file) {
         batchValidator.validateArchive(file);
 
         Batch batchToProcess = tryToSave(file, batchMapper.toBatch(file));
 
-        processingService.processBatch(batchToProcess);
+        CompletableFuture.runAsync(
+                () -> processingService.processBatch(batchToProcess)
+        );
+
+        return batchToProcess;
     }
 
     private Batch tryToSave(MultipartFile file, Batch batch) {
