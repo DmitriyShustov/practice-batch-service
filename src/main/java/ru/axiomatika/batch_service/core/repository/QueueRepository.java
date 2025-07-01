@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import ru.axiomatika.batch_service.core.entity.queue.BatchQueueItem;
 import ru.axiomatika.batch_service.core.exception.BaseException;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
+import ru.axiomatika.batch_service.core.exception.DatabaseException;
 
 @Repository
 @RequiredArgsConstructor
@@ -30,11 +31,7 @@ public class QueueRepository {
                 transaction.rollback();
             }
 
-            throw new BaseException(
-                    e.getMessage(),
-                    BaseExceptionCode.DATABASE_EXCEPTION,
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            throw new DatabaseException(e.getMessage());
         } finally {
             session.close();
         }
