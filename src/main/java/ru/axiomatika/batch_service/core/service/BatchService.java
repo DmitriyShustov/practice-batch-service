@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchItem;
+import ru.axiomatika.batch_service.core.entity.BatchStatus;
 import ru.axiomatika.batch_service.core.exception.BaseException;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
+import ru.axiomatika.batch_service.core.exception.ValidationException;
 import ru.axiomatika.batch_service.core.repository.BatchRepository;
 import ru.axiomatika.batch_service.core.validator.BatchValidator;
 import ru.axiomatika.batch_service.web.mapper.BatchItemMapper;
@@ -15,6 +17,8 @@ import ru.axiomatika.batch_service.web.mapper.BatchMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -27,17 +31,56 @@ public class BatchService {
     private final BatchRepository batchRepository;
     private final BatchItemService batchItemService;
     private final BatchItemMapper batchItemMapper;
+    private final BatchProcessingService processingService;
 
     public void processArchive(MultipartFile file) {
         batchValidator.validateArchive(file);
 
-        Batch batch = batchMapper.toBatch(file);
-        batchRepository.save(batch);
+        Batch batchToProcess = tryToSave(file, batchMapper.toBatch(file));
 
-        processArchiveContent(file, batch);
+        processingService.processBatch(batchToProcess);
     }
 
-    private void processArchiveContent(MultipartFile file, Batch batch) {
+    private Batch tryToSave(MultipartFile file, Batch batch) {
+        Optional<Batch> optionalBatch = batchRepository.findByHash(batch.getHash());
+        if (optionalBatch.isPresent()) {
+            Batch batchByHash = optionalBatch.get();
+            checkCanProcessExistingBatch(batchByHash);
+
+            return batchByHash;
+        }
+
+        batchRepository.save(batch);
+        saveArchiveContent(file, batch);
+
+        return batch;
+    }
+
+    private void checkCanProcessExistingBatch(Batch batch) {
+        checkIsBatchProcessing(batch);
+        checkTimeForNextProcessing(batch);
+    }
+
+    private void checkIsBatchProcessing(Batch batch) {
+        BatchStatus currentStatus = batch.getStatus();
+        if (currentStatus == BatchStatus.RECEIVED || currentStatus == BatchStatus.PROCESSING) {
+            throw new ValidationException(
+                    BaseExceptionCode.BAD_REQUEST_ARCHIVE_ALREADY_PROCESSING,
+                    "This batch is being processed now"
+            );
+        }
+    }
+
+    private void checkTimeForNextProcessing(Batch batch) {
+        if (batch.getNextAttempt().isAfter(LocalDateTime.now())) {
+            throw new ValidationException(
+                    BaseExceptionCode.BAD_REQUEST_ARCHIVE_ALREADY_PROCESSING,
+                    "This batch can not be processed earlier than " + batch.getNextAttempt()
+            );
+        }
+    }
+
+    private void saveArchiveContent(MultipartFile file, Batch batch) {
         try (ZipInputStream zipInputStream = new ZipInputStream(file.getInputStream())) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
