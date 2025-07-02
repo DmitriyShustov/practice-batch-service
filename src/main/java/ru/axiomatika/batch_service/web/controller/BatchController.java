@@ -27,4 +27,9 @@ public class BatchController {
         return ResponseEntity.ok(uploadBatchMapper.toDto(batch));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Void> getBatchProcessingProgress(@PathVariable Long id) {
+        return ResponseEntity.ok(null);
+    }
+
 }
