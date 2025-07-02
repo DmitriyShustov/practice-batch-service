@@ -4,11 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
 import ru.axiomatika.batch_service.core.entity.BatchItem;
-import ru.axiomatika.batch_service.core.exception.BaseException;
-import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 import ru.axiomatika.batch_service.core.exception.DatabaseException;
 
 @Repository
