@@ -49,4 +49,5 @@ public interface ExceptionMapper {
                 .message(message)
                 .build();
     }
+
 }

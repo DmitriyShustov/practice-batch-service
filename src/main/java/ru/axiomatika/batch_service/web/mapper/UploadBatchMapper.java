@@ -13,4 +13,5 @@ public interface UploadBatchMapper {
     @Mapping(target = "totalRequests", source = "totalRequests")
     @Mapping(target = "status", source = "status")
     UploadBatchDto toDto(Batch batch);
+
 }
