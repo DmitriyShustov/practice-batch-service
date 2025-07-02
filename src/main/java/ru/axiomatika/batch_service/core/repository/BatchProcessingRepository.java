@@ -40,7 +40,7 @@ public class BatchProcessingRepository {
     public BatchProcessing findByBatchId(Long batchId) {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
-                            "SELECT p FROM BatchProcessing p WHERE p.batch.id = :batchId",
+                            "SELECT p FROM BatchProcessing p JOIN FETCH p.batch WHERE p.batch.id = :batchId",
                             BatchProcessing.class)
                     .setParameter("batchId", batchId)
                     .uniqueResult();
