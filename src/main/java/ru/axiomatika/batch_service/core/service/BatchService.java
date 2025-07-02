@@ -32,7 +32,7 @@ public class BatchService {
     private final BatchRepository batchRepository;
     private final BatchItemService batchItemService;
     private final BatchItemMapper batchItemMapper;
-    private final BatchProcessingService processingService;
+    private final QueueService queueService;
 
     public Batch processArchive(MultipartFile file) {
         batchValidator.validateArchive(file);
@@ -40,7 +40,7 @@ public class BatchService {
         Batch batchToProcess = tryToSave(file, batchMapper.toBatch(file));
 
         CompletableFuture.runAsync(
-                () -> processingService.processBatch(batchToProcess)
+                () -> queueService.processBatch(batchToProcess)
         );
 
         return batchToProcess;
