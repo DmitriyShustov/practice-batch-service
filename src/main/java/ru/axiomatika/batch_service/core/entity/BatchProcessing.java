@@ -32,4 +32,13 @@ public class BatchProcessing {
     @Column(name = "failed_count", nullable = false)
     private Integer failedCount;
 
+    public static BatchProcessing createStartBatchProcessing(Batch batch) {
+        return BatchProcessing.builder()
+                .batch(batch)
+                .processedPercentage(0)
+                .successfulCount(0)
+                .failedCount(0)
+                .build();
+    }
+
 }
