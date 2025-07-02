@@ -17,37 +17,10 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class QueueService {
 
-    private static final int REQUEST_SEC_INTERVAL_FOR_SAME_BATCH = 10;
-
-    private final BatchRepository batchRepository;
     private final QueueRepository queueRepository;
 
     public void save(BatchQueueItem queueItem) {
         queueRepository.save(queueItem);
-    }
-
-    public void processBatch(Batch batch) {
-        try {
-            updateTimestamps(batch);
-
-            Thread.sleep(3500);
-
-//        stubs for tests
-            batch.setStatus(BatchStatus.COMPLETED);
-            batchRepository.updateStatus(batch);
-        } catch (InterruptedException e) {
-            throw new BaseException(
-                    e.getMessage(),
-                    BaseExceptionCode.INTERNAL_EXCEPTION,
-                    HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private void updateTimestamps(Batch batch) {
-        batch.setPreviousAttempt(LocalDateTime.now());
-        batch.setNextAttempt(batch.getPreviousAttempt().plusSeconds(REQUEST_SEC_INTERVAL_FOR_SAME_BATCH));
-
-        batchRepository.updateProcessingTimestamps(batch);
     }
 
 }
