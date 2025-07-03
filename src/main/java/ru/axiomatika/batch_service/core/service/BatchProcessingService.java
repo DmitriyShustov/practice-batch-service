@@ -26,11 +26,15 @@ public class BatchProcessingService {
     public void processBatch(Batch batch) {
         prepareForUpdate(batch);
 
-        while(!isBatchProcessed(batch.getId())) {
+        while(true) {
             queueService.performRequests(batch);
 
+            if (isBatchProcessed(batch.getId())) {
+                break;
+            }
+
             try {
-                Thread.sleep(batchProcessingConfig.REQUEST_INTERVAL_FOR_SAME_BATCH_SEC);
+                Thread.sleep(batchProcessingConfig.XML_FILES_PROCESSING_INTERVAL_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new InterruptBatchProcessingException(e.getMessage());
