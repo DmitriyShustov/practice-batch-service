@@ -19,19 +19,18 @@ import java.time.LocalDateTime;
 public class BatchProcessingService {
 
     private static final int REQUEST_SEC_INTERVAL_FOR_SAME_BATCH = 10;
+    private static final int AMOUNT_OF_BATCH_ITEMS_TO_PROCESS_PER_CALL = 10;
 
     private final BatchRepository batchRepository;
     private final BatchProcessingRepository batchProcessingRepository;
+    private final QueueService queueService;
 
     public void processBatch(Batch batch) {
         try {
             prepareForUpdate(batch);
 
             Thread.sleep(3500);
-
-//        stubs for tests
-            batch.setStatus(BatchStatus.COMPLETED);
-            batchRepository.updateStatus(batch);
+            queueService.performRequests(batch, AMOUNT_OF_BATCH_ITEMS_TO_PROCESS_PER_CALL);
         } catch (InterruptedException e) {
             throw new BaseException(
                     e.getMessage(),
