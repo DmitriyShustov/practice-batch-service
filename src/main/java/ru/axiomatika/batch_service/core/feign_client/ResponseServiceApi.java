@@ -1,4 +1,4 @@
-package ru.axiomatika.batch_service.core.request;
+package ru.axiomatika.batch_service.core.feign_client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
