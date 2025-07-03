@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
 import ru.axiomatika.batch_service.core.exception.DatabaseException;
+import ru.axiomatika.batch_service.core.exception.InvalidHashException;
 
 import java.util.Optional;
 
@@ -113,7 +114,7 @@ public class BatchRepository {
 
     private void checkValidHas(String hash) {
         if (hash == null || hash.isEmpty()) {
-            throw new DatabaseException("Invalid hash");
+            throw new InvalidHashException();
         }
     }
 
