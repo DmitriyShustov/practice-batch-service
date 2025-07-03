@@ -7,6 +7,7 @@ import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchProcessing;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
 import ru.axiomatika.batch_service.core.exception.BatchNotFoundException;
+import ru.axiomatika.batch_service.core.exception.InterruptBatchProcessingException;
 import ru.axiomatika.batch_service.core.repository.BatchProcessingRepository;
 import ru.axiomatika.batch_service.core.repository.BatchRepository;
 
@@ -27,6 +28,13 @@ public class BatchProcessingService {
 
         while(!isBatchProcessed(batch.getId())) {
             queueService.performRequests(batch);
+
+            try {
+                Thread.sleep(batchProcessingConfig.REQUEST_INTERVAL_FOR_SAME_BATCH_SEC);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new InterruptBatchProcessingException(e.getMessage());
+            }
         }
     }
 
