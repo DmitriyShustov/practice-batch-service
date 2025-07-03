@@ -1,27 +1,25 @@
 package ru.axiomatika.batch_service.core.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchItem;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
-import ru.axiomatika.batch_service.core.exception.BaseException;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 import ru.axiomatika.batch_service.core.exception.ValidationException;
+import ru.axiomatika.batch_service.core.parser.BatchParser;
 import ru.axiomatika.batch_service.core.repository.BatchRepository;
 import ru.axiomatika.batch_service.core.validator.BatchValidator;
+import ru.axiomatika.batch_service.web.dto.response_service.XmlFileDto;
 import ru.axiomatika.batch_service.web.mapper.BatchItemMapper;
 import ru.axiomatika.batch_service.web.mapper.BatchMapper;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+
 
 @Service
 @RequiredArgsConstructor
@@ -33,11 +31,13 @@ public class BatchService {
     private final BatchItemService batchItemService;
     private final BatchItemMapper batchItemMapper;
     private final BatchProcessingService batchProcessingService;
+    private final BatchParser batchParser;
 
     public Batch processArchive(MultipartFile file) {
         batchValidator.validateArchive(file);
+        List<XmlFileDto> xmlFiles = batchParser.toXmlFiles(file);
 
-        Batch batchToProcess = tryToSave(file, batchMapper.toBatch(file));
+        Batch batchToProcess = tryToSave(xmlFiles, batchMapper.toBatch(file));
 
         CompletableFuture.runAsync(
                 () -> batchProcessingService.processBatch(batchToProcess)
@@ -46,7 +46,7 @@ public class BatchService {
         return batchToProcess;
     }
 
-    private Batch tryToSave(MultipartFile file, Batch batch) {
+    private Batch tryToSave(List<XmlFileDto> xmlFiles, Batch batch) {
         Optional<Batch> optionalBatch = batchRepository.findByHash(batch.getHash());
         if (optionalBatch.isPresent()) {
             Batch batchByHash = optionalBatch.get();
@@ -56,7 +56,7 @@ public class BatchService {
         }
 
         batchRepository.save(batch);
-        saveArchiveContent(file, batch);
+        saveArchiveContent(xmlFiles, batch);
 
         return batch;
     }
@@ -85,25 +85,10 @@ public class BatchService {
         }
     }
 
-    private void saveArchiveContent(MultipartFile file, Batch batch) {
-        try (ZipInputStream zipInputStream = new ZipInputStream(file.getInputStream())) {
-            ZipEntry zipEntry;
-            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                if (!zipEntry.isDirectory()) {
-                    String xmlContent = new String(zipInputStream.readAllBytes(), StandardCharsets.UTF_8);
-
-                    BatchItem batchItem = batchItemMapper.toBatchItem(zipEntry.getName(), xmlContent, batch);
-
-                    batchItemService.save(batchItem);
-                }
-                zipInputStream.closeEntry();
-            }
-        } catch (IOException e) {
-            throw new BaseException(
-                    e.getMessage(),
-                    BaseExceptionCode.INTERNAL_EXCEPTION,
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+    private void saveArchiveContent(List<XmlFileDto> xmlFiles, Batch batch) {
+        for (XmlFileDto xmlFileDto : xmlFiles) {
+            BatchItem batchItem = batchItemMapper.toBatchItem(xmlFileDto, batch);
+            batchItemService.save(batchItem);
         }
     }
 

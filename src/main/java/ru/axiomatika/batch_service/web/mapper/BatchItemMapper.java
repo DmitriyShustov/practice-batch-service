@@ -4,14 +4,15 @@ import org.springframework.stereotype.Component;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchItem;
 import ru.axiomatika.batch_service.core.entity.BatchItemStatus;
+import ru.axiomatika.batch_service.web.dto.response_service.XmlFileDto;
 
 @Component
 public class BatchItemMapper {
 
-    public BatchItem toBatchItem(String fileName, String xmlContent, Batch batch) {
+    public BatchItem toBatchItem(XmlFileDto xmlFileDto, Batch batch) {
         return BatchItem.builder()
-                .name(fileName)
-                .xmlContent(xmlContent)
+                .name(xmlFileDto.getName())
+                .xmlContent(xmlFileDto.getXmlData())
                 .status(BatchItemStatus.PENDING)
                 .batch(batch)
                 .build();
