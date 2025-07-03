@@ -1,19 +1,17 @@
 package ru.axiomatika.batch_service.core.service;
 
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import ru.axiomatika.batch_service.core.config.BatchProcessingConfig;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchProcessing;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
-import ru.axiomatika.batch_service.core.exception.BaseException;
-import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 import ru.axiomatika.batch_service.core.exception.BatchNotFoundException;
 import ru.axiomatika.batch_service.core.repository.BatchProcessingRepository;
 import ru.axiomatika.batch_service.core.repository.BatchRepository;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -25,16 +23,10 @@ public class BatchProcessingService {
     private final QueueService queueService;
 
     public void processBatch(Batch batch) {
-        try {
-            prepareForUpdate(batch);
+        prepareForUpdate(batch);
 
-            Thread.sleep(3500);
+        while(!isBatchProcessed(batch.getId())) {
             queueService.performRequests(batch);
-        } catch (InterruptedException e) {
-            throw new BaseException(
-                    e.getMessage(),
-                    BaseExceptionCode.INTERNAL_EXCEPTION,
-                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -66,6 +58,16 @@ public class BatchProcessingService {
     private void saveOrUpdateProcessing(BatchProcessing batchProcessing) {
 
         batchProcessingRepository.saveOrUpdate(batchProcessing);
+    }
+
+    private boolean isBatchProcessed(Long batchId) {
+        Optional<BatchStatus> currentStatus = batchRepository.findStatusById(batchId);
+
+        if (currentStatus.isEmpty()) {
+            throw new BatchNotFoundException(batchId);
+        }
+
+        return currentStatus.get() == BatchStatus.COMPLETED || currentStatus.get() == BatchStatus.FAILED;
     }
 
     public BatchProcessing getProgress(Long batchId) {

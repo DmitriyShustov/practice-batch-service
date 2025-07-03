@@ -6,6 +6,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
 import ru.axiomatika.batch_service.core.entity.Batch;
+import ru.axiomatika.batch_service.core.entity.BatchStatus;
 import ru.axiomatika.batch_service.core.exception.DatabaseException;
 
 import java.util.Optional;
@@ -113,6 +114,25 @@ public class BatchRepository {
     private void checkValidHas(String hash) {
         if (hash == null || hash.isEmpty()) {
             throw new DatabaseException("Invalid hash");
+        }
+    }
+
+    public Optional<BatchStatus> findStatusById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("ID cannot be null");
+        }
+
+        Session session = sessionFactory.openSession();
+        try {
+            return session.createQuery(
+                            "SELECT b.status FROM Batch b WHERE b.id = :id", BatchStatus.class)
+                    .setParameter("id", id)
+                    .setMaxResults(1)
+                    .uniqueResultOptional();
+        } catch (Exception e) {
+            throw new DatabaseException("Failed to find batch status by ID: " + e.getMessage());
+        } finally {
+            session.close();
         }
     }
 
