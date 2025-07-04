@@ -7,7 +7,7 @@ import ru.axiomatika.batch_service.core.entity.queue.BatchQueueItem;
 
 @Getter
 @AllArgsConstructor
-public class QueueItemWithBatchItemDto {
+public class QueueAndBatchItemDto {
 
     private BatchQueueItem queueItem;
 
