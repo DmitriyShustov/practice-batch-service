@@ -79,7 +79,7 @@ public class BatchProcessingService {
 
     private Runnable createProcessingTask(Batch batch) {
         return () -> {
-            queueService.performRequests(batch);
+            queueService.performPortionOfRequests(batch);
             if (isBatchProcessed(batch.getId())) {
                 throw new CancellationException("Batch processing completed");
             }

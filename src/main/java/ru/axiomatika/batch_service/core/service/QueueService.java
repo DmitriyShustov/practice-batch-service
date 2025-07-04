@@ -21,7 +21,7 @@ public class QueueService {
         queueRepository.save(queueItem);
     }
 
-    public void performRequests(Batch batch) {
+    public void performPortionOfRequests(Batch batch) {
         try {
             performRequest();
 
