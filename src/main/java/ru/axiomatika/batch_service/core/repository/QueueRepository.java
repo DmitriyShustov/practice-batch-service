@@ -5,8 +5,14 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
+import ru.axiomatika.batch_service.core.entity.BatchItemStatus;
 import ru.axiomatika.batch_service.core.entity.queue.BatchQueueItem;
 import ru.axiomatika.batch_service.core.exception.DatabaseException;
+import ru.axiomatika.batch_service.web.dto.QueueAndBatchItemDto;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -28,6 +34,32 @@ public class QueueRepository {
                 transaction.rollback();
             }
 
+            throw new DatabaseException(e.getMessage());
+        } finally {
+            session.close();
+        }
+    }
+
+    public List<QueueAndBatchItemDto> findQueueItemsWithBatchItems(int limit, int maxRetryCount) {
+        Session session = sessionFactory.openSession();
+        try {
+            return session.createQuery(
+                            "SELECT NEW ru.axiomatika.batch_service.web.dto.QueueItemWithBatchItemDto(q, b) " +
+                                    "FROM BatchQueueItem q " +
+                                    "JOIN q.batchItem b " +
+                                    "WHERE q.nextProcessingTime <= :currentTime " +
+                                    "AND b.status NOT IN (:excludedStatuses) " +
+                                    "AND q.retryCount < :maxRetryCount " +
+                                    "ORDER BY q.priority ASC, q.nextProcessingTime ASC",
+                            QueueAndBatchItemDto.class)
+                    .setParameter("currentTime", LocalDateTime.now())
+                    .setParameter("excludedStatuses",
+                            Arrays.asList(BatchItemStatus.SUCCESS, BatchItemStatus.VALIDATION_ERROR))
+                    .setParameter("maxRetryCount", maxRetryCount)
+                    .setMaxResults(limit)
+                    .getResultList();
+        }
+        catch (Exception e) {
             throw new DatabaseException(e.getMessage());
         } finally {
             session.close();
