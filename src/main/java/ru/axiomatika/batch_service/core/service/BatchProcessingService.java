@@ -89,7 +89,7 @@ public class BatchProcessingService {
     private ScheduledFuture<?> startProcessingTask(Runnable processingTask) {
         return scheduler.scheduleAtFixedRate(
                 processingTask,
-                0,
+                batchProcessingConfig.XML_FILES_PROCESSING_INITIAL_DELAY_MS,
                 batchProcessingConfig.XML_FILES_PROCESSING_INTERVAL_MS,
                 TimeUnit.MILLISECONDS
         );
