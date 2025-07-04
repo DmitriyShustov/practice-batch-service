@@ -1,6 +1,6 @@
 package ru.axiomatika.batch_service.core.service;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.axiomatika.batch_service.core.config.BatchProcessingConfig;
 import ru.axiomatika.batch_service.core.entity.Batch;
@@ -13,9 +13,10 @@ import ru.axiomatika.batch_service.core.repository.BatchRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.concurrent.*;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class BatchProcessingService {
 
     private final BatchProcessingConfig batchProcessingConfig;
@@ -23,23 +24,17 @@ public class BatchProcessingService {
     private final BatchProcessingRepository batchProcessingRepository;
     private final QueueService queueService;
 
+    private ScheduledExecutorService scheduler;
+
     public void processBatch(Batch batch) {
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+
         prepareForUpdate(batch);
 
-        while(true) {
-            queueService.performRequests(batch);
+        Runnable processingTask = createProcessingTask(batch);
+        ScheduledFuture<?> scheduledFuture = startProcessingTask(processingTask);
 
-            if (isBatchProcessed(batch.getId())) {
-                break;
-            }
-
-            try {
-                Thread.sleep(batchProcessingConfig.XML_FILES_PROCESSING_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new InterruptBatchProcessingException(e.getMessage());
-            }
-        }
+        waitForCancellationOrInterruption(scheduledFuture, batch);
     }
 
     private void prepareForUpdate(Batch batch) {
@@ -80,6 +75,48 @@ public class BatchProcessingService {
         }
 
         return currentStatus.get() == BatchStatus.COMPLETED || currentStatus.get() == BatchStatus.FAILED;
+    }
+
+    private Runnable createProcessingTask(Batch batch) {
+        return () -> {
+            queueService.performRequests(batch);
+            if (isBatchProcessed(batch.getId())) {
+                throw new CancellationException("Batch processing completed");
+            }
+        };
+    }
+
+    private ScheduledFuture<?> startProcessingTask(Runnable processingTask) {
+        return scheduler.scheduleAtFixedRate(
+                processingTask,
+                0,
+                batchProcessingConfig.XML_FILES_PROCESSING_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+        );
+    }
+
+    private void waitForCancellationOrInterruption(ScheduledFuture<?> scheduledFuture, Batch batch) {
+        try {
+            while (!scheduledFuture.isDone()) {
+                try {
+                    scheduledFuture.get();
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof CancellationException) {
+                        return;
+                    }
+                    batch.setStatus(BatchStatus.FAILED);
+                    batchRepository.updateStatus(batch);
+
+                    throw new RuntimeException("Error during batch processing", e.getCause());
+                }
+            }
+        } catch (InterruptedException e) {
+            scheduledFuture.cancel(true);
+            Thread.currentThread().interrupt();
+            throw new InterruptBatchProcessingException(e.getMessage());
+        } finally {
+            scheduler.shutdown();
+        }
     }
 
     public BatchProcessing getProgress(Long batchId) {
