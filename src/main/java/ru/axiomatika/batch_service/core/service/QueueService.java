@@ -25,6 +25,8 @@ public class QueueService {
         try {
             performRequest();
 
+            batch.setStatus(BatchStatus.COMPLETED);
+            batchRepository.updateStatus(batch);
         } catch (Exception e) {
             batch.setStatus(BatchStatus.FAILED);
             batchRepository.updateStatus(batch);
