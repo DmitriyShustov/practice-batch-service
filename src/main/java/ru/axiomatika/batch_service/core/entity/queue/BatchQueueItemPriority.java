@@ -7,9 +7,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum BatchQueueItemPriority {
 
-    HIGH(1),
-    NORMAL(2),
-    LOW(3);
+    HIGH(0),
+    NORMAL(1),
+    LOW(2);
 
     private final int priority;
 
