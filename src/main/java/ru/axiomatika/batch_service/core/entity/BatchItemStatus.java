@@ -15,4 +15,12 @@ public enum BatchItemStatus {
 
     private final int status;
 
+    public static BatchItemStatus fromStatus(int status) {
+        for (BatchItemStatus itemStatus : values()) {
+            if (itemStatus.getStatus() == status) {
+                return itemStatus;
+            }
+        }
+        throw new IllegalArgumentException("Unknown status code: " + status);
+    }
 }
