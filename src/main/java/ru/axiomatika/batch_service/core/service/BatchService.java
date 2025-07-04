@@ -68,7 +68,7 @@ public class BatchService {
 
     private void checkIsBatchProcessing(Batch batch) {
         BatchStatus currentStatus = batch.getStatus();
-        if (currentStatus == BatchStatus.RECEIVED || currentStatus == BatchStatus.PROCESSING) {
+        if (currentStatus == BatchStatus.PROCESSING) {
             throw new ValidationException(
                     BaseExceptionCode.BAD_REQUEST_ARCHIVE_ALREADY_PROCESSING,
                     "This batch is being processed now"
