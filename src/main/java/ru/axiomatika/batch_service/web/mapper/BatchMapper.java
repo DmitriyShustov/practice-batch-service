@@ -21,13 +21,13 @@ import java.util.zip.ZipInputStream;
 @RequiredArgsConstructor
 public class BatchMapper {
 
-    public Batch toBatch(MultipartFile zipFile) {
+    public Batch toBatch(MultipartFile zipFile, int totalRequests) {
         return Batch.builder()
                 .requestTime(LocalDateTime.now())
                 .name(zipFile.getOriginalFilename())
                 .status(BatchStatus.RECEIVED)
                 .hash(calculateHash(zipFile))
-                .totalRequests(getTotalRequests(zipFile))
+                .totalRequests(totalRequests)
                 .build();
     }
 
@@ -40,22 +40,6 @@ public class BatchMapper {
         }
 
         return fileHash;
-    }
-
-    private int getTotalRequests(MultipartFile zipFile) {
-        int totalRequests = 0;
-        try (InputStream countStream = zipFile.getInputStream();
-             ZipInputStream zipInputStream = new ZipInputStream(countStream)) {
-            ZipEntry entry;
-            while ((entry = zipInputStream.getNextEntry()) != null) {
-                if (!entry.isDirectory()) {
-                    totalRequests++;
-                }
-            }
-        } catch (IOException e) {
-            throw new ValidationException(BaseExceptionCode.INVALID_ARCHIVE_CONTENT_FORMAT, e.getMessage());
-        }
-        return totalRequests;
     }
 
 }

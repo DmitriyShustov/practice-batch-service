@@ -37,7 +37,7 @@ public class BatchService {
         batchValidator.validateArchive(file);
         List<XmlFileDto> xmlFiles = batchParser.toXmlFiles(file);
 
-        Batch batchToProcess = tryToSave(xmlFiles, batchMapper.toBatch(file));
+        Batch batchToProcess = tryToSave(xmlFiles, batchMapper.toBatch(file, xmlFiles.size()));
 
         CompletableFuture.runAsync(
                 () -> batchProcessingService.processBatch(batchToProcess)
