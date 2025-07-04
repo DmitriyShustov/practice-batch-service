@@ -44,7 +44,7 @@ public class QueueRepository {
         Session session = sessionFactory.openSession();
         try {
             return session.createQuery(
-                            "SELECT NEW ru.axiomatika.batch_service.web.dto.QueueItemWithBatchItemDto(q, b) " +
+                            "SELECT NEW ru.axiomatika.batch_service.web.dto.QueueAndBatchItemDto(q, b) " +
                                     "FROM BatchQueueItem q " +
                                     "JOIN q.batchItem b " +
                                     "WHERE q.nextProcessingTime <= :currentTime " +
