@@ -9,7 +9,9 @@ import ru.axiomatika.batch_service.core.entity.BatchStatus;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 import ru.axiomatika.batch_service.core.exception.ValidationException;
 import ru.axiomatika.batch_service.core.parser.BatchParser;
+import ru.axiomatika.batch_service.core.repository.BatchItemRepository;
 import ru.axiomatika.batch_service.core.repository.BatchRepository;
+import ru.axiomatika.batch_service.core.repository.QueueRepository;
 import ru.axiomatika.batch_service.core.validator.BatchValidator;
 import ru.axiomatika.batch_service.web.dto.response_service.XmlFileDto;
 import ru.axiomatika.batch_service.web.mapper.BatchItemMapper;
@@ -28,6 +30,8 @@ public class BatchService {
     private final BatchValidator batchValidator;
     private final BatchMapper batchMapper;
     private final BatchRepository batchRepository;
+    private final BatchItemRepository batchItemRepository;
+    private final QueueRepository queueRepository;
     private final BatchItemService batchItemService;
     private final BatchItemMapper batchItemMapper;
     private final BatchProcessingService batchProcessingService;
@@ -37,7 +41,7 @@ public class BatchService {
         batchValidator.validateArchive(file);
         List<XmlFileDto> xmlFiles = batchParser.toXmlFiles(file);
 
-        Batch batchToProcess = tryToSave(xmlFiles, batchMapper.toBatch(file, xmlFiles.size()));
+        Batch batchToProcess = tryToSaveOrReset(xmlFiles, batchMapper.toBatch(file, xmlFiles.size()));
 
         CompletableFuture.runAsync(
                 () -> batchProcessingService.processBatch(batchToProcess)
@@ -46,11 +50,13 @@ public class BatchService {
         return batchToProcess;
     }
 
-    private Batch tryToSave(List<XmlFileDto> xmlFiles, Batch batch) {
+    private Batch tryToSaveOrReset(List<XmlFileDto> xmlFiles, Batch batch) {
         Optional<Batch> optionalBatch = batchRepository.findByHash(batch.getHash());
         if (optionalBatch.isPresent()) {
             Batch batchByHash = optionalBatch.get();
             checkCanProcessExistingBatch(batchByHash);
+
+            resetItemsForAnotherProcessing(batchByHash.getId());
 
             return batchByHash;
         }
@@ -83,6 +89,11 @@ public class BatchService {
                     "This batch can not be processed earlier than " + batch.getNextAttempt()
             );
         }
+    }
+
+    private void resetItemsForAnotherProcessing(Long batchId) {
+        batchItemRepository.updateStatusToPendingByBatchId(batchId);
+        queueRepository.resetRetryCountByBatchId(batchId);
     }
 
     private void saveArchiveContent(List<XmlFileDto> xmlFiles, Batch batch) {

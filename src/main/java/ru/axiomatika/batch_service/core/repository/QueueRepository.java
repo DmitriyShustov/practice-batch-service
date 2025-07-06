@@ -41,6 +41,30 @@ public class QueueRepository {
         }
     }
 
+    public void resetRetryCountByBatchId(Long batchId) {
+        Session session = sessionFactory.openSession();
+        Transaction transaction = null;
+        try {
+            transaction = session.beginTransaction();
+
+            session.createQuery(
+                            "UPDATE BatchQueueItem q " +
+                                    "SET q.retryCount = 0 " +
+                                    "WHERE q.batchItem.batch.id = :batchId")
+                    .setParameter("batchId", batchId)
+                    .executeUpdate();
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw new DatabaseException("Failed to reset retry count for batchId: " + batchId);
+        } finally {
+            session.close();
+        }
+    }
+
     public List<QueueAndBatchItemDto> findQueueItemsWithBatchItems(int limit, int maxRetryCount) {
         Session session = sessionFactory.openSession();
         try {
