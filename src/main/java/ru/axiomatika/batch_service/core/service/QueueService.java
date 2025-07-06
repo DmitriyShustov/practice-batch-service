@@ -117,7 +117,7 @@ public class QueueService {
     }
 
     private void updateParamsInDataBase() {
-        // обновить portion
+        queueRepository.updateQueueItemsWithBatchItems(portion);
         batchProcessingRepository.saveOrUpdate(processingProgress);
     }
 

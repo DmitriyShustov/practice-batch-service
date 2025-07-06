@@ -5,6 +5,7 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.springframework.stereotype.Repository;
+import ru.axiomatika.batch_service.core.entity.BatchItem;
 import ru.axiomatika.batch_service.core.entity.BatchItemStatus;
 import ru.axiomatika.batch_service.core.entity.queue.BatchQueueItem;
 import ru.axiomatika.batch_service.core.exception.DatabaseException;
@@ -61,6 +62,35 @@ public class QueueRepository {
         }
         catch (Exception e) {
             throw new DatabaseException(e.getMessage());
+        } finally {
+            session.close();
+        }
+    }
+
+    public void updateQueueItemsWithBatchItems(List<QueueAndBatchItemDto> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        Session session = sessionFactory.openSession();
+        Transaction transaction = null;
+        try {
+            transaction = session.beginTransaction();
+
+            for (QueueAndBatchItemDto dto : items) {
+                BatchQueueItem queueItem = dto.getQueueItem();
+                session.update(queueItem);
+
+                BatchItem batchItem = dto.getBatchItem();
+                session.update(batchItem);
+            }
+
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            throw new DatabaseException("Failed to update queue and batch items");
         } finally {
             session.close();
         }
