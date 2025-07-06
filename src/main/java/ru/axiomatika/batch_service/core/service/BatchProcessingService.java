@@ -64,6 +64,10 @@ public class BatchProcessingService {
 
     private void saveOrUpdateProcessing(BatchProcessing batchProcessing) {
 
+        batchProcessing.setProcessedPercentage(0);
+        batchProcessing.setSuccessfulCount(0);
+        batchProcessing.setFailedCount(0);
+
         batchProcessingRepository.saveOrUpdate(batchProcessing);
     }
 
