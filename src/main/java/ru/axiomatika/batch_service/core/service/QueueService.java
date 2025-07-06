@@ -34,6 +34,7 @@ public class QueueService {
     private final XmlFileMapper xmlFileMapper;
 
     private final static Long nanosToMsCoefficient = 1000L;
+    private final static int percentMultiplier = 100;
 
     private List<QueueAndBatchItemDto> portion;
     private BatchProcessing processingProgress;
@@ -110,8 +111,8 @@ public class QueueService {
     }
 
     private void updateProcessingPercentageProgress(Batch batch ) {
-        int currentPercentage = processingProgress.getProcessedPercentage();
-        int additionPercentage = batch.getTotalRequests() / amountOfProcessedRequests;
+        int currentPercentage = processingProgress.getProcessedPercentage() * percentMultiplier;
+        int additionPercentage = (batch.getTotalRequests() / amountOfProcessedRequests) * percentMultiplier;
 
         processingProgress.setProcessedPercentage(currentPercentage + additionPercentage);
     }
