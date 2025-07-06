@@ -35,6 +35,7 @@ public class QueueService {
 
     private final static Long nanosToMsCoefficient = 1000L;
     private final static int percentMultiplier = 100;
+    private final static int fullPercentValue = 100;
 
     private List<QueueAndBatchItemDto> portion;
     private BatchProcessing processingProgress;
@@ -54,12 +55,9 @@ public class QueueService {
                 updateQueueAndBatchItem(responseFromResponseService, queueAndBatchItemDto);
             }
             updateProcessingPercentageProgress(batch);
-
             updateParamsInDataBase();
 
-//            TODO необязательно COMPLETE
-            batch.setStatus(BatchStatus.COMPLETED);
-            batchRepository.updateStatus(batch);
+            checkIsProcessingComplete(batch);
         } catch (Exception e) {
             batch.setStatus(BatchStatus.FAILED);
             batchRepository.updateStatus(batch);
@@ -122,4 +120,20 @@ public class QueueService {
         batchProcessingRepository.saveOrUpdate(processingProgress);
     }
 
+    private void checkIsProcessingComplete(Batch batch) {
+        if (batch.getTotalRequests() ==
+                processingProgress.getSuccessfulCount() + processingProgress.getFailedCount()
+        ) {
+            updateProcessingToFullPercentage();
+            batch.setStatus(BatchStatus.COMPLETED);
+            batchRepository.updateStatus(batch);
+        }
+    }
+
+    private void updateProcessingToFullPercentage() {
+        if (processingProgress.getProcessedPercentage() != fullPercentValue) {
+            processingProgress.setProcessedPercentage(fullPercentValue);
+            batchProcessingRepository.saveOrUpdate(processingProgress);
+        }
+    }
 }
