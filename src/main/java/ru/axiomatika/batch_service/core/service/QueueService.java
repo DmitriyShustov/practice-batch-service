@@ -54,6 +54,8 @@ public class QueueService {
             }
             updateProcessingPercentageProgress(batch);
 
+            updateParamsInDataBase();
+
 //            TODO необязательно COMPLETE
             batch.setStatus(BatchStatus.COMPLETED);
             batchRepository.updateStatus(batch);
@@ -112,6 +114,11 @@ public class QueueService {
         int additionPercentage = batch.getTotalRequests() / amountOfProcessedRequests;
 
         processingProgress.setProcessedPercentage(currentPercentage + additionPercentage);
+    }
+
+    private void updateParamsInDataBase() {
+        // обновить portion
+        batchProcessingRepository.saveOrUpdate(processingProgress);
     }
 
 }
