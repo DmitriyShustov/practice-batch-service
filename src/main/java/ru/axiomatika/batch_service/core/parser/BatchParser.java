@@ -31,6 +31,12 @@ public class BatchParser {
         List<XmlFileDto> xmlFiles = new ArrayList<>();
 
         try (ZipInputStream zipInputStream = new ZipInputStream(file.getInputStream())) {
+            if (file.isEmpty()) {
+                throw new BaseException("Empty ZIP file",
+                        BaseExceptionCode.INVALID_ARCHIVE_EMPTY,
+                        HttpStatus.BAD_REQUEST);
+            }
+
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                 if (!zipEntry.isDirectory()) {
