@@ -28,8 +28,8 @@ public class QueueRepository {
             transaction = session.beginTransaction();
 
             session.persist(queueItem);
-            transaction.commit();
 
+            transaction.commit();
         } catch (Exception e) {
             if (transaction != null) {
                 transaction.rollback();

@@ -38,7 +38,8 @@ public class BatchProcessingRepository {
     }
 
     public BatchProcessing findByBatchId(Long batchId) {
-        try (Session session = sessionFactory.openSession()) {
+        Session session = sessionFactory.openSession();
+        try {
             return session.createQuery(
                             "SELECT p FROM BatchProcessing p JOIN FETCH p.batch WHERE p.batch.id = :batchId",
                             BatchProcessing.class)
@@ -46,6 +47,8 @@ public class BatchProcessingRepository {
                     .uniqueResult();
         } catch (Exception e) {
             throw new DatabaseException("Failed to find batch processing by batch id: " + batchId);
+        } finally {
+            session.close();
         }
     }
 

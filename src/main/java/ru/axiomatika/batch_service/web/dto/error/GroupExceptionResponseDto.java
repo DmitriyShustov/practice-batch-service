@@ -14,6 +14,7 @@ import java.util.List;
 public class GroupExceptionResponseDto {
 
     private String message;
+
     private List<ExceptionResponseDto> errors;
 
 }

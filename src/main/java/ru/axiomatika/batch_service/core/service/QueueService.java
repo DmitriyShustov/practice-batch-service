@@ -136,4 +136,5 @@ public class QueueService {
             batchProcessingRepository.saveOrUpdate(processingProgress);
         }
     }
+
 }

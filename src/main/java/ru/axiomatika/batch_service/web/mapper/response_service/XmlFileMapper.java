@@ -11,4 +11,5 @@ public interface XmlFileMapper {
     @Mapping(source = "batchItem.name", target = "name")
     @Mapping(source = "batchItem.xmlContent", target = "xmlData")
     XmlFileDto toDto(QueueAndBatchItemDto queueAndBatchItemDto);
+
 }

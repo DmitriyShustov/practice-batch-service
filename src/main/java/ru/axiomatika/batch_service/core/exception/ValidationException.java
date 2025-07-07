@@ -7,4 +7,5 @@ public class ValidationException extends BaseException {
     public ValidationException(BaseExceptionCode code, String message) {
         super(message, code, HttpStatus.BAD_REQUEST);
     }
+
 }

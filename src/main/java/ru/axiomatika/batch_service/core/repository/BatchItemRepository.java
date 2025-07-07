@@ -22,8 +22,8 @@ public class BatchItemRepository {
             transaction = session.beginTransaction();
 
             session.persist(batchItem);
-            transaction.commit();
 
+            transaction.commit();
         } catch (Exception e) {
             if (transaction != null) {
                 transaction.rollback();
