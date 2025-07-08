@@ -16,7 +16,7 @@ public class BatchItemRepository {
 
     public void save(BatchItem batchItem) {
         try (Session session = sessionFactory.openSession()) {
-            session.persist(batchItem);
+            session.save(batchItem);
         } catch (Exception e) {
             throw new DatabaseException(e.getMessage());
         }

@@ -22,7 +22,7 @@ public class QueueRepository {
 
     public void save(BatchQueueItem queueItem) {
         try (Session session = sessionFactory.openSession()) {
-            session.persist(queueItem);
+            session.save(queueItem);
         } catch (Exception e) {
             throw new DatabaseException(e.getMessage());
         }

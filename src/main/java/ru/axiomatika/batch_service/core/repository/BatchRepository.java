@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
 import ru.axiomatika.batch_service.core.exception.DatabaseException;
@@ -19,7 +20,7 @@ public class BatchRepository {
 
     public void save(Batch batch) {
         try (Session session = sessionFactory.openSession()) {
-            session.persist(batch);
+            session.save(batch);
         } catch (Exception e) {
             throw new DatabaseException(e.getMessage());
         }

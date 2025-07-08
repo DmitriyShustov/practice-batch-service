@@ -16,9 +16,9 @@ public class BatchProcessingRepository {
     public void saveOrUpdate(BatchProcessing processing) {
         try (Session session = sessionFactory.openSession()) {
             if (processing.getId() != null) {
-                session.merge(processing);
+                session.update(processing);
             } else {
-                session.persist(processing);
+                session.save(processing);
             }
         } catch (Exception e) {
             throw new DatabaseException("Failed to save or update batch processing");
