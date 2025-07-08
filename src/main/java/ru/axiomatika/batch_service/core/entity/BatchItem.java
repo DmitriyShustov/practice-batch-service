@@ -30,7 +30,7 @@ public class BatchItem {
     private BatchItemStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "batch_request_id")
+    @JoinColumn(name = "batch_request_id", nullable = false)
     private Batch batch;
 
 }

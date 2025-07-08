@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchItem;
 import ru.axiomatika.batch_service.core.entity.BatchStatus;
+import ru.axiomatika.batch_service.core.entity.queue.BatchQueueItem;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 import ru.axiomatika.batch_service.core.exception.ValidationException;
 import ru.axiomatika.batch_service.core.parser.BatchParser;
@@ -17,6 +18,7 @@ import ru.axiomatika.batch_service.core.validator.BatchValidator;
 import ru.axiomatika.batch_service.web.dto.response_service.XmlFileDto;
 import ru.axiomatika.batch_service.web.mapper.BatchItemMapper;
 import ru.axiomatika.batch_service.web.mapper.BatchMapper;
+import ru.axiomatika.batch_service.web.mapper.BatchQueueItemMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +34,8 @@ public class BatchService {
     private final BatchRepository batchRepository;
     private final BatchItemRepository batchItemRepository;
     private final QueueRepository queueRepository;
+    private final BatchQueueItemMapper batchQueueItemMapper;
+    private final QueueService queueService;
     private final BatchItemService batchItemService;
     private final BatchItemMapper batchItemMapper;
     private final BatchProcessingService batchProcessingService;
@@ -63,10 +67,15 @@ public class BatchService {
             return batchByHash;
         }
 
-        batchRepository.save(batch);
+        save(batch);
         saveArchiveContent(xmlFiles, batch);
 
         return batch;
+    }
+
+    @Transactional
+    private void save(Batch batch) {
+        batchRepository.save(batch);
     }
 
     private void checkCanProcessExistingBatch(Batch batch) {
@@ -104,6 +113,9 @@ public class BatchService {
         for (XmlFileDto xmlFileDto : xmlFiles) {
             BatchItem batchItem = batchItemMapper.toBatchItem(xmlFileDto, batch);
             batchItemService.save(batchItem);
+
+            BatchQueueItem batchQueueItem = batchQueueItemMapper.toBatchQueueItem(batchItem);
+            queueService.save(batchQueueItem);
         }
     }
 
