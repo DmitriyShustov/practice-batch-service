@@ -1,13 +1,21 @@
 package ru.axiomatika.batch_service.core.validator;
 
 import org.springframework.stereotype.Component;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
 import ru.axiomatika.batch_service.core.exception.BaseExceptionCode;
 import ru.axiomatika.batch_service.core.exception.ValidationException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -17,10 +25,10 @@ import java.util.List;
 public class BatchItemValidator {
 
     private static final List<String> REQUIRED_XML_FIELDS = List.of(
-            "request"
+            "/request"
     );
 
-      public List<ValidationException> validateXml(String xmlContent) throws ValidationException {
+    public List<ValidationException> validateXml(String xmlContent) throws ValidationException {
         List<ValidationException> errors = new ArrayList<>();
 
         validateXmlNotEmpty(xmlContent, errors);
@@ -45,9 +53,10 @@ public class BatchItemValidator {
 
     private void validateXmlStructure(String xmlContent, List<ValidationException> errors) throws ValidationException {
         try {
-            XMLReader reader = XMLReaderFactory.createXMLReader();
-            reader.parse(new InputSource(new StringReader(xmlContent)));
-        } catch (SAXException e) {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            builder.parse(new InputSource(new StringReader(xmlContent)));
+        } catch (ParserConfigurationException | SAXException e) {
             errors.add(new ValidationException(
                     BaseExceptionCode.INVALID_XML_FORMAT,
                     "Invalid XML format: " + e.getMessage()
@@ -61,13 +70,36 @@ public class BatchItemValidator {
     }
 
     private void validateXmlContent(String xmlContent, List<ValidationException> errors) throws ValidationException {
-        for (String field : REQUIRED_XML_FIELDS) {
-            if (!xmlContent.contains("<" + field + ">") || !xmlContent.contains("</" + field + ">")) {
-                errors.add(new ValidationException(
-                        BaseExceptionCode.INVALID_XML_MISSING_REQUIRED_FIELDS,
-                        "Missing required XML field: " + field
-                ));
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(new InputSource(new StringReader(xmlContent)));
+
+            XPathFactory xPathFactory = XPathFactory.newInstance();
+            XPath xpath = xPathFactory.newXPath();
+
+            for (String xpathExpression : REQUIRED_XML_FIELDS) {
+                XPathExpression expression = xpath.compile(xpathExpression);
+                NodeList nodes = (NodeList) expression.evaluate(document, XPathConstants.NODESET);
+
+                if (nodes == null || nodes.getLength() == 0) {
+                    String fieldName = xpathExpression.substring(xpathExpression.lastIndexOf('/') + 1);
+                    errors.add(new ValidationException(
+                            BaseExceptionCode.INVALID_XML_MISSING_REQUIRED_FIELDS,
+                            "Missing required XML field: " + fieldName
+                    ));
+                }
             }
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            errors.add(new ValidationException(
+                    BaseExceptionCode.INVALID_XML_FORMAT,
+                    "Error parsing XML: " + e.getMessage()
+            ));
+        } catch (XPathExpressionException e) {
+            errors.add(new ValidationException(
+                    BaseExceptionCode.INVALID_XML_FORMAT,
+                    "Error evaluating XPath expression: " + e.getMessage()
+            ));
         }
     }
 
