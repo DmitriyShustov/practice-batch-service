@@ -2,6 +2,7 @@ package ru.axiomatika.batch_service.core.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchItem;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-
 @Service
 @RequiredArgsConstructor
 public class BatchService {
@@ -37,6 +37,7 @@ public class BatchService {
     private final BatchProcessingService batchProcessingService;
     private final BatchParser batchParser;
 
+    @Transactional
     public Batch processArchive(MultipartFile file) {
         batchValidator.validateArchive(file);
         List<XmlFileDto> xmlFiles = batchParser.toXmlFiles(file);
@@ -50,6 +51,7 @@ public class BatchService {
         return batchToProcess;
     }
 
+    @Transactional
     private Batch tryToSaveOrReset(List<XmlFileDto> xmlFiles, Batch batch) {
         Optional<Batch> optionalBatch = batchRepository.findByHash(batch.getHash());
         if (optionalBatch.isPresent()) {
@@ -91,11 +93,13 @@ public class BatchService {
         }
     }
 
+    @Transactional
     private void resetItemsForAnotherProcessing(Long batchId) {
         batchItemRepository.updateStatusToPendingByBatchId(batchId);
         queueRepository.resetRetryCountByBatchId(batchId);
     }
 
+    @Transactional
     private void saveArchiveContent(List<XmlFileDto> xmlFiles, Batch batch) {
         for (XmlFileDto xmlFileDto : xmlFiles) {
             BatchItem batchItem = batchItemMapper.toBatchItem(xmlFileDto, batch);

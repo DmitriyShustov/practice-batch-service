@@ -2,6 +2,7 @@ package ru.axiomatika.batch_service.core.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.axiomatika.batch_service.core.config.BatchProcessingConfig;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchItemStatus;
@@ -20,7 +21,6 @@ import ru.axiomatika.batch_service.web.mapper.response_service.XmlFileMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 
 @Service
 @RequiredArgsConstructor
@@ -41,10 +41,12 @@ public class QueueService {
     private BatchProcessing processingProgress;
     private int amountOfProcessedRequests;
 
+    @Transactional
     public void save(BatchQueueItem queueItem) {
         queueRepository.save(queueItem);
     }
 
+    @Transactional
     public void performPortionOfRequests(Batch batch) {
         try {
             setUpFields(batch);
@@ -54,6 +56,7 @@ public class QueueService {
 
                 updateQueueAndBatchItem(responseFromResponseService, queueAndBatchItemDto);
             }
+
             updateProcessingPercentageProgress(batch);
             updateParamsInDataBase();
 
@@ -91,6 +94,7 @@ public class QueueService {
 
         LocalDateTime timeToNextAttempt = queueItem.getNextProcessingTime().plusNanos(
                 batchProcessingConfig.XML_FILES_PROCESSING_TIME_FOR_REPEAT_ERROR_REQUESTS_MS * nanosToMsCoefficient);
+
         if (!isRequestPerformedSuccessfully(responseDto)) {
             if (queueItem.getRetryCount() == batchProcessingConfig.XML_FILES_PROCESSING_MAX_TRY_COUNT) {
                 amountOfProcessedRequests++;
@@ -108,7 +112,7 @@ public class QueueService {
                 responseDto.getStatusCode() == BatchItemStatus.VALIDATION_ERROR.getStatus();
     }
 
-    private void updateProcessingPercentageProgress(Batch batch ) {
+    private void updateProcessingPercentageProgress(Batch batch) {
         int currentPercentage = processingProgress.getProcessedPercentage() * percentMultiplier;
         int additionPercentage = (batch.getTotalRequests() / amountOfProcessedRequests) * percentMultiplier;
 
@@ -121,9 +125,7 @@ public class QueueService {
     }
 
     private void checkIsProcessingComplete(Batch batch) {
-        if (batch.getTotalRequests() ==
-                processingProgress.getSuccessfulCount() + processingProgress.getFailedCount()
-        ) {
+        if (batch.getTotalRequests() == processingProgress.getSuccessfulCount() + processingProgress.getFailedCount()) {
             updateProcessingToFullPercentage();
             batch.setStatus(BatchStatus.COMPLETED);
             batchRepository.updateStatus(batch);

@@ -2,6 +2,7 @@ package ru.axiomatika.batch_service.core.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.axiomatika.batch_service.core.config.BatchProcessingConfig;
 import ru.axiomatika.batch_service.core.entity.Batch;
 import ru.axiomatika.batch_service.core.entity.BatchProcessing;
@@ -26,6 +27,7 @@ public class BatchProcessingService {
 
     private ScheduledExecutorService scheduler;
 
+    @Transactional
     public void processBatch(Batch batch) {
         scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -35,6 +37,15 @@ public class BatchProcessingService {
         ScheduledFuture<?> scheduledFuture = startProcessingTask(processingTask);
 
         waitForCancellationOrInterruption(scheduledFuture, batch);
+    }
+
+    @Transactional
+    public BatchProcessing getProgress(Long batchId) {
+        BatchProcessing batchProcessing = batchProcessingRepository.findByBatchId(batchId);
+        if (batchProcessing == null) {
+            throw new BatchNotFoundException(batchId);
+        }
+        return batchProcessing;
     }
 
     private void prepareForUpdate(Batch batch) {
@@ -63,7 +74,6 @@ public class BatchProcessingService {
     }
 
     private void saveOrUpdateProcessing(BatchProcessing batchProcessing) {
-
         batchProcessing.setProcessedPercentage(0);
         batchProcessing.setSuccessfulCount(0);
         batchProcessing.setFailedCount(0);
@@ -121,16 +131,6 @@ public class BatchProcessingService {
         } finally {
             scheduler.shutdown();
         }
-    }
-
-    public BatchProcessing getProgress(Long batchId) {
-        BatchProcessing batchProcessing = batchProcessingRepository.findByBatchId(batchId);
-
-        if (batchProcessing == null) {
-            throw new BatchNotFoundException(batchId);
-        }
-
-        return batchProcessing;
     }
 
 }
