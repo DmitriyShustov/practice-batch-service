@@ -4,10 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.axiomatika.batch_service.core.config.BatchProcessingConfig;
-import ru.axiomatika.batch_service.core.entity.Batch;
-import ru.axiomatika.batch_service.core.entity.BatchItemStatus;
-import ru.axiomatika.batch_service.core.entity.BatchProcessing;
-import ru.axiomatika.batch_service.core.entity.BatchStatus;
+import ru.axiomatika.batch_service.core.entity.*;
 import ru.axiomatika.batch_service.core.entity.queue.BatchQueueItem;
 import ru.axiomatika.batch_service.core.exception.InterruptBatchProcessingException;
 import ru.axiomatika.batch_service.core.feign_client.ResponseServiceApi;
@@ -20,7 +17,6 @@ import ru.axiomatika.batch_service.web.dto.response_service.XmlFileDto;
 import ru.axiomatika.batch_service.web.mapper.response_service.XmlFileMapper;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,10 +33,6 @@ public class QueueService {
     private final static int percentMultiplier = 100;
     private final static int fullPercentValue = 100;
 
-    private List<QueueAndBatchItemDto> portion;
-    private BatchProcessing processingProgress;
-    private int amountOfProcessedRequests;
-
     @Transactional
     public void save(BatchQueueItem queueItem) {
         queueRepository.save(queueItem);
@@ -49,18 +41,20 @@ public class QueueService {
     @Transactional
     public void performPortionOfRequests(Batch batch) {
         try {
-            setUpFields(batch);
+            BatchProcessingPortion portion = createNewPortion(batch);
 
-            for (QueueAndBatchItemDto queueAndBatchItemDto : portion) {
+            createNewPortion(batch);
+
+            for (QueueAndBatchItemDto queueAndBatchItemDto : portion.getPortion()) {
                 ResponseDto responseFromResponseService = performRequest(xmlFileMapper.toDto(queueAndBatchItemDto));
 
-                updateQueueAndBatchItem(responseFromResponseService, queueAndBatchItemDto);
+                updateQueueAndBatchItem(responseFromResponseService, queueAndBatchItemDto, portion);
             }
 
-            updateProcessingPercentageProgress(batch);
-            updateParamsInDataBase();
+            updateProcessingPercentageProgress(batch, portion);
+            updateParamsInDataBase(portion);
 
-            checkIsProcessingComplete(batch);
+            checkIsProcessingComplete(batch, portion);
         } catch (Exception e) {
             batch.setStatus(BatchStatus.FAILED);
             batchRepository.updateStatus(batch);
@@ -68,27 +62,35 @@ public class QueueService {
         }
     }
 
-    private void setUpFields(Batch batch) {
-        portion = queueRepository.findQueueItemsWithBatchItems(
-                batchProcessingConfig.XML_FILES_PROCESSING_AMOUNT_PER_ONE_TIME,
-                batchProcessingConfig.XML_FILES_PROCESSING_MAX_TRY_COUNT
-        );
-        processingProgress = batchProcessingRepository.findByBatchId(batch.getId());
-        amountOfProcessedRequests = 0;
+    private BatchProcessingPortion createNewPortion(Batch batch) {
+        return BatchProcessingPortion.builder()
+                .portion(queueRepository.findQueueItemsWithBatchItems(
+                        batchProcessingConfig.XML_FILES_PROCESSING_AMOUNT_PER_ONE_TIME,
+                        batchProcessingConfig.XML_FILES_PROCESSING_MAX_TRY_COUNT))
+                .processingProgress(batchProcessingRepository.findByBatchId(batch.getId()))
+                .amountOfProcessedRequests(0)
+                .build();
     }
 
     private ResponseDto performRequest(XmlFileDto xmlFileDto) {
         return responseServiceApi.processRequest(xmlFileDto).getBody();
     }
 
-    private void updateQueueAndBatchItem(ResponseDto responseDto, QueueAndBatchItemDto queueAndBatchItemDto) {
+    private void updateQueueAndBatchItem(
+            ResponseDto responseDto,
+            QueueAndBatchItemDto queueAndBatchItemDto,
+            BatchProcessingPortion portion
+    ) {
         BatchItemStatus status = BatchItemStatus.fromStatus(responseDto.getStatusCode());
         queueAndBatchItemDto.getBatchItem().setStatus(status);
 
-        updateQueueItem(queueAndBatchItemDto, responseDto);
+        updateQueueItem(queueAndBatchItemDto, responseDto, portion);
     }
 
-    private void updateQueueItem(QueueAndBatchItemDto queueAndBatchItemDto, ResponseDto responseDto) {
+    private void updateQueueItem(QueueAndBatchItemDto queueAndBatchItemDto,
+                                 ResponseDto responseDto,
+                                 BatchProcessingPortion portion
+    ) {
         BatchQueueItem queueItem = queueAndBatchItemDto.getQueueItem();
         queueItem.setRetryCount(queueItem.getRetryCount() + 1);
 
@@ -97,14 +99,14 @@ public class QueueService {
 
         if (!isRequestPerformedSuccessfully(responseDto)) {
             if (queueItem.getRetryCount() == batchProcessingConfig.XML_FILES_PROCESSING_MAX_TRY_COUNT) {
-                amountOfProcessedRequests++;
-                processingProgress.setFailedCount(processingProgress.getFailedCount() + 1);
+                portion.setAmountOfProcessedRequests(portion.getAmountOfProcessedRequests() + 1);
+                portion.getProcessingProgress().setFailedCount(portion.getProcessingProgress().getFailedCount() + 1);
             }
             queueItem.setNextProcessingTime(timeToNextAttempt);
             return;
         }
-        amountOfProcessedRequests++;
-        processingProgress.setSuccessfulCount(processingProgress.getSuccessfulCount() + 1);
+        portion.setAmountOfProcessedRequests(portion.getAmountOfProcessedRequests() + 1);
+        portion.getProcessingProgress().setSuccessfulCount(portion.getProcessingProgress().getSuccessfulCount() + 1);
     }
 
     private boolean isRequestPerformedSuccessfully(ResponseDto responseDto) {
@@ -112,30 +114,31 @@ public class QueueService {
                 responseDto.getStatusCode() == BatchItemStatus.VALIDATION_ERROR.getStatus();
     }
 
-    private void updateProcessingPercentageProgress(Batch batch) {
-        int currentPercentage = processingProgress.getProcessedPercentage() * percentMultiplier;
-        int additionPercentage = (batch.getTotalRequests() / amountOfProcessedRequests) * percentMultiplier;
+    private void updateProcessingPercentageProgress(Batch batch, BatchProcessingPortion portion) {
+        int currentPercentage = portion.getProcessingProgress().getProcessedPercentage() * percentMultiplier;
+        int additionPercentage = (batch.getTotalRequests() / portion.getAmountOfProcessedRequests()) * percentMultiplier;
 
-        processingProgress.setProcessedPercentage(currentPercentage + additionPercentage);
+        portion.getProcessingProgress().setProcessedPercentage(currentPercentage + additionPercentage);
     }
 
-    private void updateParamsInDataBase() {
-        queueRepository.updateQueueItemsWithBatchItems(portion);
-        batchProcessingRepository.saveOrUpdate(processingProgress);
+    private void updateParamsInDataBase(BatchProcessingPortion portion) {
+        queueRepository.updateQueueItemsWithBatchItems(portion.getPortion());
+        batchProcessingRepository.saveOrUpdate(portion.getProcessingProgress());
     }
 
-    private void checkIsProcessingComplete(Batch batch) {
-        if (batch.getTotalRequests() == processingProgress.getSuccessfulCount() + processingProgress.getFailedCount()) {
-            updateProcessingToFullPercentage();
+    private void checkIsProcessingComplete(Batch batch, BatchProcessingPortion portion) {
+        if (batch.getTotalRequests() == portion.getProcessingProgress().getSuccessfulCount() +
+                portion.getProcessingProgress().getFailedCount()) {
+            updateProcessingToFullPercentage(portion);
             batch.setStatus(BatchStatus.COMPLETED);
             batchRepository.updateStatus(batch);
         }
     }
 
-    private void updateProcessingToFullPercentage() {
-        if (processingProgress.getProcessedPercentage() != fullPercentValue) {
-            processingProgress.setProcessedPercentage(fullPercentValue);
-            batchProcessingRepository.saveOrUpdate(processingProgress);
+    private void updateProcessingToFullPercentage(BatchProcessingPortion portion) {
+        if (portion.getProcessingProgress().getProcessedPercentage() != fullPercentValue) {
+            portion.getProcessingProgress().setProcessedPercentage(fullPercentValue);
+            batchProcessingRepository.saveOrUpdate(portion.getProcessingProgress());
         }
     }
 
