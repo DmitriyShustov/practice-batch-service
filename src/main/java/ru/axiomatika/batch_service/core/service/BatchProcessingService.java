@@ -14,7 +14,6 @@ import ru.axiomatika.batch_service.core.repository.BatchRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
@@ -25,18 +24,21 @@ public class BatchProcessingService {
     private final BatchProcessingRepository batchProcessingRepository;
     private final QueueService queueService;
 
-    private ScheduledExecutorService scheduler;
-
     @Transactional
     public void processBatch(Batch batch) {
-        scheduler = Executors.newSingleThreadScheduledExecutor();
-
         prepareForUpdate(batch);
 
-        Runnable processingTask = createProcessingTask(batch);
-        ScheduledFuture<?> scheduledFuture = startProcessingTask(processingTask);
+        try {
+            while (!isBatchProcessed(batch.getId())) {
+                queueService.performPortionOfRequests(batch);
 
-        waitForCancellationOrInterruption(scheduledFuture, batch);
+                Thread.sleep(batchProcessingConfig.XML_FILES_PROCESSING_INTERVAL_MS);
+            }
+        } catch (Exception e) {
+            batch.setStatus(BatchStatus.FAILED);
+            batchRepository.updateStatus(batch);
+            throw new InterruptBatchProcessingException(e.getMessage());
+        }
     }
 
     @Transactional
@@ -89,48 +91,6 @@ public class BatchProcessingService {
         }
 
         return currentStatus.get() == BatchStatus.COMPLETED || currentStatus.get() == BatchStatus.FAILED;
-    }
-
-    private Runnable createProcessingTask(Batch batch) {
-        return () -> {
-            queueService.performPortionOfRequests(batch);
-            if (isBatchProcessed(batch.getId())) {
-                throw new CancellationException("Batch processing completed");
-            }
-        };
-    }
-
-    private ScheduledFuture<?> startProcessingTask(Runnable processingTask) {
-        return scheduler.scheduleAtFixedRate(
-                processingTask,
-                batchProcessingConfig.XML_FILES_PROCESSING_INITIAL_DELAY_MS,
-                batchProcessingConfig.XML_FILES_PROCESSING_INTERVAL_MS,
-                TimeUnit.MILLISECONDS
-        );
-    }
-
-    private void waitForCancellationOrInterruption(ScheduledFuture<?> scheduledFuture, Batch batch) {
-        try {
-            while (!scheduledFuture.isDone()) {
-                try {
-                    scheduledFuture.get();
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof CancellationException) {
-                        return;
-                    }
-                    batch.setStatus(BatchStatus.FAILED);
-                    batchRepository.updateStatus(batch);
-
-                    throw new RuntimeException("Error during batch processing", e.getCause());
-                }
-            }
-        } catch (InterruptedException e) {
-            scheduledFuture.cancel(true);
-            Thread.currentThread().interrupt();
-            throw new InterruptBatchProcessingException(e.getMessage());
-        } finally {
-            scheduler.shutdown();
-        }
     }
 
 }
